@@ -68,3 +68,32 @@ chmod 440 ~/.secret/jwtsecret
 EOF
 
 echo "[INFO] Setup complete. You can now run Geth and Lighthouse manually or script their startup."
+
+#!/bin/bash
+
+# === Validasi dan Setup IP Statis ===
+CHAIN="eth"
+NETWORK="mainnet"
+EXT_IP_NAME="$CHAIN-$NETWORK-rpc-ip"
+REGION="us-central1"  # Ubah jika pakai region lain
+
+echo "[INFO] Memeriksa apakah IP statis '$EXT_IP_NAME' sudah ada..."
+IP_EXIST=$(gcloud compute addresses list --filter="name=$EXT_IP_NAME" --regions=$REGION --format="value(address)")
+
+if [[ -z "$IP_EXIST" ]]; then
+  echo "[WARNING] IP statis belum ada. Membuat IP statis '$EXT_IP_NAME'..."
+  gcloud compute addresses create $EXT_IP_NAME \
+    --region=$REGION \
+    --network-tier=PREMIUM
+  if [[ $? -ne 0 ]]; then
+    echo "[ERROR] Gagal membuat IP statis. Periksa kredensial dan hak akses akun Anda."
+    exit 1
+  fi
+else
+  echo "[INFO] IP statis ditemukan: $IP_EXIST"
+fi
+
+# Ambil IP dan set sebagai variabel lingkungan
+EXT_IP_ADDRESS=$(gcloud compute addresses describe $EXT_IP_NAME --region=$REGION --format="value(address)")
+export EXT_IP_ADDRESS
+echo "[INFO] IP statis yang digunakan: $EXT_IP_ADDRESS"
